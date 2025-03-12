@@ -1,0 +1,35 @@
+public with sharing class UploadPhotoParkingLog {
+    
+    @AuraEnabled
+    public static void linkFilesToRecord(Id recordId, List<Id> fileIds) {
+        List<ContentDocumentLink> links = new List<ContentDocumentLink>();
+
+        for (Id fileId : fileIds) {
+            links.add(new ContentDocumentLink(
+                ContentDocumentId = fileId,
+                LinkedEntityId = recordId,
+                ShareType = 'V',
+                Visibility = 'AllUsers'
+            ));
+        }
+
+        insert links;
+    }
+
+    @AuraEnabled
+    public static void updateParkingLogLocation(Id recordId, Decimal latitude, Decimal longitude) {
+        try {
+            Parking_Log__c parkingLog = [SELECT Id FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
+
+            parkingLog.Parked_Location__Latitude__s = latitude;
+            parkingLog.Parked_Location__Longitude__s = longitude;
+
+            update parkingLog;
+
+        } catch (Exception e) {
+            throw new AuraHandledException('Error updating location: ' + e.getMessage());
+        }
+    }
+
+   
+}

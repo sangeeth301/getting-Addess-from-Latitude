@@ -1,0 +1,74 @@
+/* Custom Modal Styling */
+.custom-modal {
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent background */
+}
+
+.custom-modal-container {
+    border-radius: 8px; /* Rounded corners for the modal */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2); /* Subtle shadow */
+    max-width: 95%; /* Limit modal width */
+    margin: 0 auto; /* Center the modal */
+}
+
+.custom-modal-header {
+    background: #0070d2; /* Salesforce brand color for header */
+    color: white; /* White text for contrast */
+    border-top-left-radius: 8px; /* Match container's rounded corners */
+    border-top-right-radius: 8px;
+    padding: 1rem; /* Add padding */
+}
+
+.custom-modal-content {
+    background: white; /* White background for content */
+    border-bottom-left-radius: 8px; /* Match container's rounded corners */
+    border-bottom-right-radius: 8px;
+    padding: 1.5rem; /* Add padding */
+}
+
+/* Custom Input Field Styling */
+.custom-input {
+    margin-bottom: 1rem; /* Space between input fields */
+}
+
+.custom-input .slds-form-element__label {
+    font-weight: bold; /* Bold labels for better readability */
+}
+
+/* Custom File Upload Styling */
+.custom-file-upload {
+    margin-top: 1rem; /* Space above file upload */
+    margin-bottom: 1.5rem; /* Space below file upload */
+}
+
+.custom-file-upload .slds-file-selector__button {
+    background: #0070d2; /* Salesforce brand color for button */
+    color: white; /* White text for contrast */
+    border-radius: 4px; /* Rounded corners */
+    padding: 0.5rem 1rem; /* Add padding */
+}
+
+.custom-file-upload .slds-file-selector__button:hover {
+    background: #005fb2; /* Darker shade on hover */
+}
+
+/* Custom Button Container Styling */
+.custom-button-container {
+    display: flex;
+    justify-content: flex-end; /* Align button to the right */
+    margin-top: 1.5rem; /* Space above button */
+}
+
+.custom-submit-button {
+    background: #0070d2; /* Salesforce brand color for button */
+    color: white; /* White text for contrast */
+    border-radius: 4px; /* Rounded corners */
+    padding: 0.5rem 1.5rem; /* Add padding */
+}
+
+.custom-submit-button:hover {
+    background: #005fb2; /* Darker shade on hover */
+}
+.TurnOn {
+    color: red;
+    font-weight: bold;
+}

@@ -1,0 +1,55 @@
+<template>
+    <template if:true={isModalOpen}>
+        <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open custom-modal">
+            <div class="slds-modal__container custom-modal-container">
+                <header class="slds-modal__header custom-modal-header">
+                    <h2 class="slds-text-heading_medium">Enter Truck Details</h2>
+                    <button class="slds-button slds-button_icon slds-modal__close" title="Close" onclick={closeModal}>
+                        <lightning-icon icon-name="utility:close" size="small"></lightning-icon>
+                    </button>
+                </header>
+
+                <div class="slds-modal__content slds-p-around_medium custom-modal-content">
+                    <lightning-record-edit-form
+                        object-api-name="Parking_Log__c"
+                        onsuccess={handleSuccess}
+                        onerror={handleError}>
+                        
+                        <!-- Truck Details -->
+                        <lightning-input-field field-name="Truck__c" class="custom-input"></lightning-input-field>
+                        <lightning-input-field field-name="Loaded__c" class="custom-input"></lightning-input-field>
+                        <lightning-input-field field-name="Date_Time_Parked_del__c" class="custom-input"></lightning-input-field>
+                        <lightning-input-field field-name="DumpsterRelated__c" value={recordId} class="custom-input"></lightning-input-field>
+                        <lightning-file-upload
+                            label="Upload Photo"
+                            name="photoUploader"
+                            accept=".jpg,.png"
+                            multiple
+                            onuploadfinished={handleUploadFinished}
+                            class="custom-file-upload">
+                        </lightning-file-upload>
+                        <lightning-input-field field-name="Notes__c" class="custom-input"></lightning-input-field>
+
+                        <!-- Get Location Button -->
+                        <div>
+                            <lightning-input-field field-name="Address__c" value={currentAddress} class="custom-input"></lightning-input-field>
+                            <lightning-button label="Get Location" onclick={getCurrentLocation} variant="brand" class="slds-m-top_medium"></lightning-button>
+                            <p if:true={showTurnOnMessage} class="TurnOn">
+                                Please turn on location in your device.
+                            </p>
+                        </div>
+                               
+                        <a href={mapurl} target="_blank">View Location on Map</a>
+                       
+
+                        <!-- Submit Button -->
+                        <div class="sticky-button-container custom-button-container">
+                            <lightning-button type="submit" label="Save" variant="brand" class="custom-submit-button"></lightning-button>
+                        </div>
+                    </lightning-record-edit-form>
+                </div>
+            </div>
+        </section>
+        <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+</template>

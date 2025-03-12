@@ -1,0 +1,41 @@
+public class ReverseGeocodeService {
+    private static final String REVERSE_GEOCODING_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
+    private static final String API_KEY = 'AIzaSyC5SFFC9d_x1zUQd5VWfMn60GPdxRGx9N0'; // Replace with your API key
+
+    @AuraEnabled
+    public static String getAddressFromCoordinates(Decimal latitude, Decimal longitude) {
+        if (latitude != null && longitude != null) {
+            String endpoint = REVERSE_GEOCODING_API_URL + '?latlng=' + latitude + ',' + longitude + '&key=' + API_KEY;
+            HttpRequest req = new HttpRequest();
+            req.setEndpoint(endpoint);
+            req.setMethod('GET');
+            
+            Http http = new Http();
+            HttpResponse res = http.send(req);
+            
+            if (res.getStatusCode() == 200) {
+                Map<String, Object> jsonResponse = (Map<String, Object>) JSON.deserializeUntyped(res.getBody());
+                List<Object> results = (List<Object>) jsonResponse.get('results');
+
+                if (!results.isEmpty()) {
+                    Map<String, Object> firstResult = (Map<String, Object>) results[0];
+                    String formattedAddress = (String) firstResult.get('formatted_address');
+
+                    if (formattedAddress != null) {
+                        return formattedAddress;
+                    }
+                }
+            } else {
+                System.debug('Reverse geocoding API call failed.');
+            }
+        }
+        return null;
+    }
+
+    @AuraEnabled
+    public static void updateParkingLogWithAddress(Id recordId, String address) {
+        Parking_Log__c parkingLog = [SELECT Id, Address__c FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
+        parkingLog.Address__c = address; // Assuming you have an Address__c field to store the address
+        update parkingLog;
+    }
+}

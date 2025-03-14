@@ -2,6 +2,7 @@ import { LightningElement, track, api } from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import linkFilesToRecord from '@salesforce/apex/UploadPhotoParkingLog.linkFilesToRecord';
+import uploadFile from '@salesforce/apex/UploadPhotoParkingLog.uploadFile';
 import updateParkingLogLocation from '@salesforce/apex/UploadPhotoParkingLog.updateParkingLogLocation';
 import getAddressFromCoordinates from '@salesforce/apex/ReverseGeocodeService.getAddressFromCoordinates';
 
@@ -25,13 +26,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
     handleSuccess(event) {
         this.ParkingLogrecordId = event.detail.id;
 
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Success',
-                message: 'Parking record created successfully. Linking uploaded files...',
-                variant: 'success'
-            })
-        );
+        this.showSuccessToast('Parking record created successfully. Linking uploaded files...');
         this.clearFormFields();
 
         if (this.uploadedFileIds.length > 0) {
@@ -40,13 +35,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
                 fileIds: this.uploadedFileIds 
             })
             .then(() => {
-                this.dispatchEvent(
-                    new ShowToastEvent({
-                        title: 'Success',
-                        message: 'Uploaded files have been linked to the record.',
-                        variant: 'success'
-                    })
-                );
+                this.showSuccessToast('Uploaded files have been linked to the record.');
             })
             .catch(error => {
                 this.dispatchEvent(
@@ -79,13 +68,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
                 }
             });
         } else {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Navigation Error',
-                    message: 'Record ID is missing. Cannot navigate.',
-                    variant: 'error'
-                })
-            );
+             this.showErrorToast('Record ID is missing. Cannot navigate.');
         }
     }
 
@@ -99,20 +82,73 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
         );
     }
 
-    handleUploadFinished(event) {
-        const uploadedFiles = event.detail.files;
+    async handleFileChange(event) {
+        const file = event.target.files[0];
 
-        uploadedFiles.forEach(file => {
-            this.uploadedFileIds.push(file.documentId);
+        if (file) {
+            try {
+                const compressedBlob = await this.compressImage(file);
+                this.uploadImage(compressedBlob, file.name, file.type);
+            } catch (error) {
+                console.error('Compression Error:', error);
+                this.showErrorToast('Error', 'Image compression failed.');
+            }
+        }
+    }
+
+    async compressImage(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.src = event.target.result;
+
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    const MAX_WIDTH = 800; // Resize width
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = Math.round(MAX_WIDTH);
+                    canvas.height = Math.round(img.height * scaleSize);
+
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+                    canvas.toBlob(
+                        (blob) => {
+                            if (blob) {
+                                resolve(blob);
+                            } else {
+                                reject(new Error('Canvas to Blob conversion failed'));
+                            }
+                        },
+                        file.type === 'image/png' ? 'image/png' : 'image/jpeg', // Output format
+                        0.7 // Compression quality (0-1)
+                    );
+                };
+                img.onerror = () => reject(new Error('Image load error'));
+            };
+            reader.onerror = () => reject(new Error('FileReader error'));
         });
+    }
 
-        this.dispatchEvent(
-            new ShowToastEvent({
-                title: 'Success',
-                message: `${uploadedFiles.length} file(s) uploaded.`,
-                variant: 'success'
-            })
-        );
+    uploadImage(fileBlob, fileName, fileType) {
+        const reader = new FileReader();
+        reader.readAsDataURL(fileBlob);
+        reader.onload = () => {
+            const base64String = reader.result.split(',')[1];
+
+            uploadFile({ fileName, fileType, base64Data: base64String })
+                .then((fileId) => {
+                    this.uploadedFileIds.push(fileId);
+                    this.showSuccessToast('Success', 'Image uploaded successfully.');
+                })
+                .catch((error) => {
+                    console.error('Upload Error:', error);
+                    this.showErrorToast('Failed to upload image.');
+                });
+        };
     }
 
     clearFormFields() {
@@ -127,6 +163,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
     }
 
     getCurrentLocation() {
+        this.currentAddress = '';
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (position) => {
@@ -146,50 +183,22 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
                             }
                         })
                         .catch(error => {
-                            this.dispatchEvent(
-                                new ShowToastEvent({
-                                    title: 'Error Getting Address',
-                                    message: error.body.message,
-                                    variant: 'error'
-                                })
-                            );
+                             this.showErrorToast('Error Getting Address');
                         });
 
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Success',
-                            message: 'Location retrieved successfully.',
-                            variant: 'success'
-                        })
-                    );
+                    this.showSuccessToast('Location retrieved successfully.');
 
-                    // If the ParkingLogrecordId already exists, update the record immediately
-                    if (this.ParkingLogrecordId) {
-                        this.updateLocation();
-                    }
                 },
                 (error) => {
                     // Show the warning if location retrieval fails
                     this.showTurnOnMessage = true;
 
-                    this.dispatchEvent(
-                        new ShowToastEvent({
-                            title: 'Error Getting Location',
-                            message: error.message,
-                            variant: 'error'
-                        })
-                    );
+                     this.showErrorToast('Error Getting Location');
                 }
             );
         } else {
             this.showTurnOnMessage = true;
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error',
-                    message: 'Geolocation is not supported by this browser.',
-                    variant: 'error'
-                })
-            );
+             this.showErrorToast('Geolocation is not supported by this browser.');
         }
     }
 
@@ -200,22 +209,28 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
             longitude: this.tempLongitude 
         })
         .then(() => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Success',
-                    message: 'Location updated successfully.',
-                    variant: 'success'
-                })
-            );
+            this.showSuccessToast('Location updated successfully.');
         })
         .catch(error => {
-            this.dispatchEvent(
-                new ShowToastEvent({
-                    title: 'Error Updating Location',
-                    message: error.body.message,
-                    variant: 'error'
-                })
-            );
+             this.showErrorToast('Error Updating Location');
         });
+    }
+
+    showSuccessToast(title, message) {
+        const evt = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: 'success'
+        });
+        this.dispatchEvent(evt);
+    }
+
+    showErrorToast(title, message) {
+    const evt = new ShowToastEvent({
+            title: title,
+            message: message,
+            variant: 'error'
+        });
+        this.dispatchEvent(evt);
     }
 }

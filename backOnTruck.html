@@ -20,26 +20,17 @@
                         <lightning-input-field field-name="Loaded__c" class="custom-input"></lightning-input-field>
                         <lightning-input-field field-name="Date_Time_Parked_del__c" class="custom-input"></lightning-input-field>
                         <lightning-input-field field-name="DumpsterRelated__c" value={recordId} class="custom-input"></lightning-input-field>
-                        <lightning-file-upload
-                            label="Upload Photo"
-                            name="photoUploader"
-                            accept=".jpg,.png"
-                            multiple
-                            onuploadfinished={handleUploadFinished}
-                            class="custom-file-upload">
-                        </lightning-file-upload>
-                        <lightning-input-field field-name="Notes__c" class="custom-input"></lightning-input-field>
-
-                        <!-- Get Location Button -->
+                        <lightning-input type="file" label="Upload Photo" accept=".jpg,.png" onchange={handleFileChange}>
+                        </lightning-input>
                         <div>
                             <lightning-input-field field-name="Address__c" value={currentAddress} class="custom-input"></lightning-input-field>
                             <lightning-button label="Get Location" onclick={getCurrentLocation} variant="brand" class="slds-m-top_medium"></lightning-button>
                             <p if:true={showTurnOnMessage} class="TurnOn">
                                 Please turn on location in your device.
                             </p>
+                            <p style="margin-top:7px"><a href={mapurl} target="_blank">View Location on Map</a></p>
                         </div>
-                               
-                        <a href={mapurl} target="_blank">View Location on Map</a>
+                        <lightning-input-field field-name="Notes__c" class="custom-input"></lightning-input-field>
                        
 
                         <!-- Submit Button -->

@@ -17,6 +17,25 @@ public with sharing class UploadPhotoParkingLog {
     }
 
     @AuraEnabled
+    public static Id uploadFile(String fileName, String fileType, String base64Data) {
+        try {
+            ContentVersion contentVersion = new ContentVersion(
+                Title = fileName,
+                PathOnClient = '/' + fileName,
+                VersionData = EncodingUtil.base64Decode(base64Data),
+                IsMajorVersion = true
+            );
+            insert contentVersion;
+
+            ContentVersion insertedVersion = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :contentVersion.Id LIMIT 1];
+
+            return insertedVersion.ContentDocumentId;
+        } catch (Exception e) {
+            throw new AuraHandledException(e.getMessage());
+        }
+    }
+
+    @AuraEnabled
     public static void updateParkingLogLocation(Id recordId, Decimal latitude, Decimal longitude) {
         try {
             Parking_Log__c parkingLog = [SELECT Id FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
@@ -30,6 +49,4 @@ public with sharing class UploadPhotoParkingLog {
             throw new AuraHandledException('Error updating location: ' + e.getMessage());
         }
     }
-
-   
 }

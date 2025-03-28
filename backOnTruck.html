@@ -16,12 +16,25 @@
                         onerror={handleError}>
                         
                         <!-- Truck Details -->
+                        <lightning-combobox
+                            name="driver"
+                            label="Select Driver"
+                            placeholder="Select a driver"
+                            options={driverOptions}
+                            value={selectedDriver}
+                            onchange={handleDriverChange}>
+                        </lightning-combobox>
+                        
                         <lightning-input-field field-name="Truck__c" class="custom-input"></lightning-input-field>
                         <lightning-input-field field-name="Loaded__c" class="custom-input"></lightning-input-field>
+                        <lightning-input-field field-name="DumpsterRelated__c" class="custom-input"
+                            onchange={handleDumpsterChange}></lightning-input-field>
                         <lightning-input-field field-name="Date_Time_Parked_del__c" class="custom-input"></lightning-input-field>
-                        <lightning-input-field field-name="DumpsterRelated__c" value={recordId} class="custom-input"></lightning-input-field>
                         <lightning-input type="file" label="Upload Photo" accept=".jpg,.png" onchange={handleFileChange}>
                         </lightning-input>
+                        <template if:true={isFileUploaded}>
+                            <span class="success-check">✔ Photo Uploaded</span>
+                        </template>
                         <div>
                             <lightning-input-field field-name="Address__c" value={currentAddress} class="custom-input"></lightning-input-field>
                             <lightning-button label="Get Location" onclick={getCurrentLocation} variant="brand" class="slds-m-top_medium"></lightning-button>

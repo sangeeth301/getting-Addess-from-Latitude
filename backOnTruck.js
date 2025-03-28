@@ -1,13 +1,17 @@
-import { LightningElement, track, api } from 'lwc';
+import { LightningElement, track,wire} from 'lwc';
 import { ShowToastEvent } from 'lightning/platformShowToastEvent';
 import { NavigationMixin } from 'lightning/navigation';
 import linkFilesToRecord from '@salesforce/apex/UploadPhotoParkingLog.linkFilesToRecord';
 import uploadFile from '@salesforce/apex/UploadPhotoParkingLog.uploadFile';
-import updateParkingLogLocation from '@salesforce/apex/UploadPhotoParkingLog.updateParkingLogLocation';
+import { updateRecord } from 'lightning/uiRecordApi';
+//import updateParkingLogLocation from '@salesforce/apex/UploadPhotoParkingLog.updateParkingLogLocation';
 import getAddressFromCoordinates from '@salesforce/apex/ReverseGeocodeService.getAddressFromCoordinates';
+import getUserProfileName from '@salesforce/apex/UserProfileInfo.getUserName';
+import GetDriverNames from '@salesforce/apex/UserProfileInfo.GetDriverNames';
+import UpdateDriverName from '@salesforce/apex/UploadPhotoParkingLog.UpdateDriverName';
+
 
 export default class BackOnTruck extends NavigationMixin(LightningElement) {
-    @api recordId;
     @track ParkingLogrecordId;
     @track latitude;
     @track longitude;
@@ -18,15 +22,76 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
     mapurl;
     @track showTurnOnMessage = true;
     @track currentAddress;
+    @track isFileUploaded = false;
+    @track driverNames = []; 
+    @track profileName;
+    @track selectedDriver;
 
     connectedCallback() {
         this.getCurrentLocation(); // Call the method automatically when the component loads
+         this.fetchDriverNames();
     }
 
+    handleDriverChange(event) {
+        this.selectedDriver = event.detail.value;
+        console.log('selectedDriver', this.selectedDriver);
+    }
+
+    async fetchDriverNames() {
+        try {
+            // Step 1: Get the user's profile name
+            this.profileName = await getUserProfileName();
+            console.log('User Profile:', this.profileName);
+            
+            if (!this.profileName) {
+                throw new Error('Could not determine user profile');
+            }
+            
+            // Step 2: Get driver names using the profile name
+            this.driverNames = await GetDriverNames({ profileName: this.profileName });
+            console.log('Driver Names:', this.driverNames);
+            
+            if (this.driverNames.length === 0) {
+                this.showToast('No Drivers Found', 'No driver names found for your profile', 'warning');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            this.showToast('Error', error.body?.message || error.message, 'error');
+            this.driverNames = [];
+        }
+    }
+
+    showToast(title, message, variant) {
+        this.dispatchEvent(new ShowToastEvent({ title, message, variant }));
+    }
+
+    get driverOptions() {
+    return this.driverNames.map(name => ({
+        label: name,
+        value: name
+    }));
+}
+/*---------------------------------------------------------------------------------------------------------------*/
     handleSuccess(event) {
         this.ParkingLogrecordId = event.detail.id;
 
         this.showSuccessToast('Parking record created successfully. Linking uploaded files...');
+        
+        UpdateDriverName({ 
+        recordId: this.ParkingLogrecordId, 
+        driver: this.selectedDriver,
+        UserTeam:this.profileName
+        })
+        .catch(error => {
+            this.dispatchEvent(
+                new ShowToastEvent({
+                    title: 'Error Updating Driver',
+                    message: error.body.message,
+                    variant: 'error'
+                })
+            );
+        });
+
         this.clearFormFields();
 
         if (this.uploadedFileIds.length > 0) {
@@ -48,28 +113,23 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
             });
         }
 
-        // If latitude and longitude were captured earlier, update the Parking Log record
-        if (this.tempLatitude && this.tempLongitude) {
-            this.updateLocation();
-        }
-
-        // Navigate to the newly created record immediately
+        
         this.navigateToRecord();
     }
 
     navigateToRecord() {
-        if (this.recordId) {
-            this[NavigationMixin.Navigate]({
-                type: 'standard__recordPage',
-                attributes: {
-                    recordId: this.recordId,
-                    objectApiName: 'Dumpsters__c',
-                    actionName: 'view'
-                }
-            });
-        } else {
-             this.showErrorToast('Record ID is missing. Cannot navigate.');
-        }
+        if(window.sforce && window.sforce.one) {
+        // Salesforce mobile
+        sforce.one.back();
+    } else {
+        // Desktop/Lightning
+        this[NavigationMixin.Navigate]({
+            type: 'standard__webPage',
+            attributes: {
+                url: 'https://haulbrooke--refresh--c.sandbox.vf.force.com/apex/Hour_Tracker_App_Page?sfdc.tabName=01r1M000001DbZ9' // Example default
+            }
+        });
+    }
     }
 
     handleError(event) {
@@ -89,6 +149,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
             try {
                 const compressedBlob = await this.compressImage(file);
                 this.uploadImage(compressedBlob, file.name, file.type);
+                //this.isFileUploaded = true;
             } catch (error) {
                 console.error('Compression Error:', error);
                 this.showErrorToast('Error', 'Image compression failed.');
@@ -142,11 +203,13 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
             uploadFile({ fileName, fileType, base64Data: base64String })
                 .then((fileId) => {
                     this.uploadedFileIds.push(fileId);
-                    this.showSuccessToast('Success', 'Image uploaded successfully.');
+                    this.isFileUploaded = true;
+                    //this.showSuccessToast('Success', 'Image uploaded successfully.');
                 })
                 .catch((error) => {
                     console.error('Upload Error:', error);
                     this.showErrorToast('Failed to upload image.');
+                    this.isFileUploaded = false;
                 });
         };
     }
@@ -156,10 +219,11 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
         inputFields.forEach(field => {
             field.reset();
         });
+        this.selectedDriver=null;
     }
 
     closeModal() {
-        this.navigateToRecord();
+         this.navigateToRecord();
     }
 
     getCurrentLocation() {
@@ -202,7 +266,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
         }
     }
 
-    updateLocation() {
+    /*updateLocation() {
         updateParkingLogLocation({ 
             recordId: this.ParkingLogrecordId, 
             latitude: this.tempLatitude, 
@@ -214,7 +278,7 @@ export default class BackOnTruck extends NavigationMixin(LightningElement) {
         .catch(error => {
              this.showErrorToast('Error Updating Location');
         });
-    }
+    }*/
 
     showSuccessToast(title, message) {
         const evt = new ShowToastEvent({

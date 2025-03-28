@@ -36,17 +36,10 @@ public with sharing class UploadPhotoParkingLog {
     }
 
     @AuraEnabled
-    public static void updateParkingLogLocation(Id recordId, Decimal latitude, Decimal longitude) {
-        try {
-            Parking_Log__c parkingLog = [SELECT Id FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
-
-            parkingLog.Parked_Location__Latitude__s = latitude;
-            parkingLog.Parked_Location__Longitude__s = longitude;
-
-            update parkingLog;
-
-        } catch (Exception e) {
-            throw new AuraHandledException('Error updating location: ' + e.getMessage());
-        }
+    public static void UpdateDriverName(Id recordId, String driver,String UserTeam) {
+        Parking_Log__c parkingLog = [SELECT Id, Address__c FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
+        parkingLog.Driver__c = driver; // Assuming you have an Address__c field to store the address
+        parkingLog.User_Team__c = UserTeam;
+        update parkingLog;
     }
 }

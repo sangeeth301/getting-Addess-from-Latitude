@@ -1,0 +1,23 @@
+public with sharing class UserProfileInfo {
+    @AuraEnabled(cacheable=true)
+    public static String getUserName() {
+        return [SELECT Name FROM User WHERE Id = :UserInfo.getUserId() LIMIT 1].Name;
+    }
+    
+     @AuraEnabled(cacheable=true)
+    public static List<String> GetDriverNames(String profileName) {
+        List<String> drivers = new List<String>();
+        
+        // Query custom setting where Name matches profileName
+        Create_Button_Pickup_Drivers__c setting = Create_Button_Pickup_Drivers__c.getInstance(profileName);
+        
+        if (setting != null && setting.Name__c != null) {
+            // Split comma-separated names and trim whitespace
+            for (String name : setting.Name__c.split(',')) {
+                drivers.add(name.trim());
+            }
+        }
+        
+        return drivers;
+    }
+}

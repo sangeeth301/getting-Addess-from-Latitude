@@ -32,10 +32,5 @@ public class ReverseGeocodeService {
         return null;
     }
 
-    @AuraEnabled
-    public static void updateParkingLogWithAddress(Id recordId, String address) {
-        Parking_Log__c parkingLog = [SELECT Id, Address__c FROM Parking_Log__c WHERE Id = :recordId LIMIT 1];
-        parkingLog.Address__c = address; // Assuming you have an Address__c field to store the address
-        update parkingLog;
-    }
+    
 }

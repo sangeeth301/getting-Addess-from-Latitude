@@ -1,6 +1,6 @@
 public class ReverseGeocodeService {
     private static final String REVERSE_GEOCODING_API_URL = 'https://maps.googleapis.com/maps/api/geocode/json';
-    private static final String API_KEY = 'AIzaSyC5SFFC9d_x1zUQd5VWfMn60GPdxRGx9N0'; // Replace with your API key
+    private static final String API_KEY = 'AIzaSyC5SXXXXXXXXXXXXXXXXXXXXXXXXXX'; // Replace with your API key
 
     @AuraEnabled
     public static String getAddressFromCoordinates(Decimal latitude, Decimal longitude) {
